@@ -1,8 +1,9 @@
 services:
   avito-shop-service:
     container_name: avito-shop-service
-    image: dockerhub-flask_live_app:1.0.0
-    build: .
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile
     ports:
       - "8080:4000"
     environment:
@@ -14,15 +15,14 @@ services:
       - internal
 
   db:
-    image: postgres:13
+    image: postgres:16.3
     container_name: postgres
     environment:
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: password
       POSTGRES_DB: shop
     volumes:
-      # "./migrations/init.sql" - путь к миграциям БД
-       - ./migrations/init.sql:/docker-entrypoint-initdb.d/init.sql
+      - ./migrations/init.sql:/docker-entrypoint-initdb.d/init.sql
     ports:
       - "5432:5432"
     healthcheck:
@@ -33,5 +33,6 @@ services:
       start_period: 10s
     networks:
       - internal
+
 networks:
   internal:

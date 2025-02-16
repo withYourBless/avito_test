@@ -1,16 +1,11 @@
 import uuid
-from datetime import datetime
-import logging
-
-logging.basicConfig(level=logging.INFO)
-logger = logging.getLogger(__name__)
 
 from pydantic import StrictStr
-from sqlalchemy import and_, select
-from sqlalchemy.orm import Session, Query
+from sqlalchemy import and_
+from sqlalchemy.orm import Session
 
 from src.Exceptions import NotEnoughMoneyException, UserGetException
-from src.endpoints.models import db_models, dto
+from src.repository import dto, db_models
 from src.endpoints.security_api import get_password_hash
 
 
@@ -31,7 +26,6 @@ def add_inventory(db: Session, user_id: StrictStr, item_name: StrictStr):
                  db_models.Inventory.item_name == item_name)
                 )
     ).first()
-    logger.info(f"!!!!!!! Inventory: {inventory}")
     if inventory is not None:
         inventory.quantity = inventory.quantity + 1
     else:

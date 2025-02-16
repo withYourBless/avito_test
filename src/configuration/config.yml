@@ -1,0 +1,10 @@
+dsn:
+  user: "postgres"
+  password: "password"
+  host: "172.17.0.1"
+  port: "5432"
+  database: "shop"
+
+app:
+  host: "127.0.0.1"
+  port: 8080

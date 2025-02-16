@@ -1,9 +1,9 @@
 import enum
 
-from sqlalchemy import Column, Integer, String, ForeignKey, DateTime, Enum, Float
+from sqlalchemy import Column, Integer, String, ForeignKey, DateTime, Enum, func
 from sqlalchemy.orm import relationship
 
-from dsn import Base
+from src.configuration.dsn import Base
 
 
 class TransactionType(enum.Enum):
@@ -46,9 +46,9 @@ class CoinTransaction(Base):
     to_user_id = Column(String, ForeignKey('users.id'))
     amount = Column(Integer)
     transaction_type = Column(Enum(TransactionType), nullable=False)
-    timestamp = Column(DateTime, default='CURRENT_TIMESTAMP')
+    timestamp = Column(DateTime, default=func.now())
 
-    user = relationship("User", backref="cointransactions")
+    user = relationship("User", foreign_keys=[user_id], backref="cointransactions")
     from_user = relationship("User", foreign_keys=[from_user_id], back_populates="sent_transactions")
     to_user = relationship("User", foreign_keys=[to_user_id], back_populates="received_transactions")
 
@@ -59,4 +59,3 @@ class Item(Base):
     id = Column(String, primary_key=True)
     name = Column(String(255), nullable=False)
     price = Column(Integer, nullable=False)
-    type = Column(String(255))

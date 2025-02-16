@@ -1,3 +1,5 @@
+from enum import Enum
+
 from pydantic import BaseModel
 from typing import Optional
 from datetime import datetime
@@ -14,7 +16,7 @@ class InventoryItem(BaseModel):
     item_name: str
     quantity: int = 0
 
-class TransactionType(str):
+class TransactionType(str, Enum):  # Use Enum here
     RECEIVED = "received"
     SENT = "sent"
 

@@ -6,4 +6,3 @@ class TokenModel(BaseModel):
     """Defines a token model."""
     user_id: str
     username: str
-    scopes: list[str] = []

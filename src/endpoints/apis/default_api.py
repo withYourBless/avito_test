@@ -2,7 +2,7 @@ from typing import Dict, List  # noqa: F401
 
 from sqlalchemy.orm import Session
 
-from ..apis.default_api_base import BaseDefaultApi
+from src.logic.default_api_base import BaseDefaultApi
 
 from fastapi import (  # noqa: F401
     APIRouter,
@@ -19,7 +19,7 @@ from fastapi import (  # noqa: F401
     status,
 )
 
-from ..models.extra_models import TokenModel  # noqa: F401
+from src.logic.extra_models import TokenModel  # noqa: F401
 from pydantic import StrictStr
 from ..models.auth_request import AuthRequest
 from ..models.auth_response import AuthResponse

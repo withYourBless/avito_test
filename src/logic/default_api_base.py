@@ -2,19 +2,19 @@ from typing import ClassVar, Dict, List, Tuple  # noqa: F401
 import bcrypt
 from pydantic import StrictStr
 
-from ..models.auth_request import AuthRequest
-from ..models.auth_response import AuthResponse
-from ..models.extra_models import TokenModel
-from ..models.info_response import InfoResponse, InfoResponseInventoryInner, InfoResponseCoinHistory
-from ..models.info_response_coin_history_received_inner import InfoResponseCoinHistoryReceivedInner
-from ..models.info_response_coin_history_sent_inner import InfoResponseCoinHistorySentInner
-from ..models.send_coin_request import SendCoinRequest
+from src.endpoints.models.auth_request import AuthRequest
+from src.endpoints.models.auth_response import AuthResponse
+from src.logic.extra_models import TokenModel
+from src.endpoints.models.info_response import InfoResponse, InfoResponseInventoryInner, InfoResponseCoinHistory
+from src.endpoints.models.info_response_coin_history_received_inner import InfoResponseCoinHistoryReceivedInner
+from src.endpoints.models.info_response_coin_history_sent_inner import InfoResponseCoinHistorySentInner
+from src.endpoints.models.send_coin_request import SendCoinRequest
 from sqlalchemy.orm import Session
-from ..security_api import create_access_token, get_password_hash
-from ..models import dto, db_models
-from ...Exceptions import ItemGetException, UserGetException, NotEnoughMoneyException
+from src.endpoints.security_api import create_access_token, get_password_hash
+from src.repository import dto
+from src.Exceptions import ItemGetException, UserGetException
 
-from ...repositories import add_transaction, add_inventory, get_transaction, create_user, get_item_by_name, \
+from src.repository.repositories import add_inventory, get_transaction, create_user, get_item_by_name, \
     get_user_by_id, buy_item, get_inventory_by_user_id, transfer_money, get_user_by_name
 
 
