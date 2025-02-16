@@ -1,4 +1,5 @@
 # coding: utf-8
+from http.client import responses
 
 from fastapi.testclient import TestClient
 
@@ -13,6 +14,8 @@ from src.endpoints.models.info_response import InfoResponse  # noqa: F401
 from src.endpoints.models.send_coin_request import SendCoinRequest  # noqa: F401
 
 base_url = "http://localhost:8080"
+
+
 def create_user(username: str, password: str) -> str:
     data = {
         "username": username,
@@ -24,6 +27,18 @@ def create_user(username: str, password: str) -> str:
 
     return AuthResponse.from_dict(response.json()).token
 
+
+def get_info(token: str) -> InfoResponse:
+    headers = {
+        "Authorization": f"Bearer {token}",
+        "Content-Type": "application/json"
+    }
+
+    response = requests.get(base_url + "/api/info", headers=headers)
+    assert response.status_code == 200
+    return InfoResponse.from_dict(response.json())
+
+
 def test_api_auth_post():
     """Test case for api_auth_post
 
@@ -33,65 +48,53 @@ def test_api_auth_post():
     assert token1 != " "
 
 
-
-
-def test_api_buy_item_get(client: TestClient):
+def test_api_buy_item_get():
     """Test case for api_buy_item_get
 
     Купить предмет за монеты.
     """
+    token1 = create_user("user1", "password")
+    item = "book"
 
     headers = {
-        "Authorization": "Bearer special-key",
+        "Authorization": f"Bearer {token1}",
+        "Content-Type": "application/json"
     }
-    # uncomment below to make a request
-    # response = client.request(
-    #    "GET",
-    #    "/api/buy/{item}".format(item='item_example'),
-    #    headers=headers,
-    # )
 
-    # uncomment below to assert the status code of the HTTP response
-    # assert response.status_code == 200
+    info_before = get_info(token1)
 
+    response = requests.get(base_url + "/api/buy/" + item, headers=headers)
+    assert response.status_code == 200
 
-def test_api_info_get(client: TestClient):
-    """Test case for api_info_get
+    info_after = get_info(token1)
 
-    Получить информацию о монетах, инвентаре и истории транзакций.
-    """
-
-    headers = {
-        "Authorization": "Bearer special-key",
-    }
-    # uncomment below to make a request
-    # response = client.request(
-    #    "GET",
-    #    "/api/info",
-    #    headers=headers,
-    # )
-
-    # uncomment below to assert the status code of the HTTP response
-    # assert response.status_code == 200
+    assert info_after.coins == info_before.coins - 50
+    assert info_after.inventory[0].type == "book"
 
 
-def test_api_send_coin_post(client: TestClient):
+def test_api_send_coin_post():
     """Test case for api_send_coin_post
 
     Отправить монеты другому пользователю.
     """
-    send_coin_request = {"to_user": "toUser", "amount": 0}
+    token1 = create_user("user1", "password")
+    token2 = create_user("user2", "password")
+
+    user1 = get_info(token1)
+    user2 = get_info(token2)
+
+    coin_request = {
+        "to_user": "user2",
+        "amount": 1,
+    }
 
     headers = {
-        "Authorization": "Bearer special-key",
+        "Authorization": f"Bearer {token1}",
+        "Content-Type": "application/json"
     }
-    # uncomment below to make a request
-    # response = client.request(
-    #    "POST",
-    #    "/api/sendCoin",
-    #    headers=headers,
-    #    json=send_coin_request,
-    # )
 
-    # uncomment below to assert the status code of the HTTP response
-    # assert response.status_code == 200
+    response = requests.post(base_url + "/api/sendCoin", json=coin_request, headers=headers)
+    assert response.status_code == 200
+
+    assert get_info(token1).coins == user1.coins - 1
+    assert get_info(token2).coins == user2.coins + 1
