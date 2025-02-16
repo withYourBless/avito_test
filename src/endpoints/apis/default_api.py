@@ -1,11 +1,8 @@
-# coding: utf-8
-
 from typing import Dict, List  # noqa: F401
-import importlib
-import pkgutil
 
-from endpoints.apis.default_api_base import BaseDefaultApi
-import endpoints
+from sqlalchemy.orm import Session
+
+from ..apis.default_api_base import BaseDefaultApi
 
 from fastapi import (  # noqa: F401
     APIRouter,
@@ -22,21 +19,18 @@ from fastapi import (  # noqa: F401
     status,
 )
 
-from endpoints.models.extra_models import TokenModel  # noqa: F401
+from ..models.extra_models import TokenModel  # noqa: F401
 from pydantic import StrictStr
-from typing import Any
-from endpoints.models.auth_request import AuthRequest
-from endpoints.models.auth_response import AuthResponse
-from endpoints.models.error_response import ErrorResponse
-from endpoints.models.info_response import InfoResponse
-from endpoints.models.send_coin_request import SendCoinRequest
-from endpoints.security_api import get_token_BearerAuth
+from ..models.auth_request import AuthRequest
+from ..models.auth_response import AuthResponse
+from ..models.error_response import ErrorResponse
+from ..models.info_response import InfoResponse
+from ..models.send_coin_request import SendCoinRequest
+from ..security_api import get_token_BearerAuth
+from ...Exceptions import ItemGetException, UserGetException, NotEnoughMoneyException
+from ...configuration.dsn import get_db
 
 router = APIRouter()
-
-ns_pkg = endpoints
-for _, name, _ in pkgutil.iter_modules(ns_pkg.__path__, ns_pkg.__name__ + "."):
-    importlib.import_module(name)
 
 
 @router.post(
@@ -44,7 +38,7 @@ for _, name, _ in pkgutil.iter_modules(ns_pkg.__path__, ns_pkg.__name__ + "."):
     responses={
         200: {"model": AuthResponse, "description": "Успешная аутентификация."},
         400: {"model": ErrorResponse, "description": "Неверный запрос."},
-        401: {"model": ErrorResponse, "description": "Неавторизован."},
+        401: {"model": ErrorResponse, "description": "Не авторизован."},
         500: {"model": ErrorResponse, "description": "Внутренняя ошибка сервера."},
     },
     tags=["default"],
@@ -52,14 +46,12 @@ for _, name, _ in pkgutil.iter_modules(ns_pkg.__path__, ns_pkg.__name__ + "."):
     response_model_by_alias=True,
 )
 async def api_auth_post(
-    auth_request: AuthRequest = Body(None, description=""),
-    token_BearerAuth: TokenModel = Security(
-        get_token_BearerAuth
-    ),
+        auth_request: AuthRequest = Body(None, description=""),
+        db: Session = Depends(get_db)
 ) -> AuthResponse:
     if not BaseDefaultApi.subclasses:
         raise HTTPException(status_code=500, detail="Not implemented")
-    return await BaseDefaultApi.subclasses[0]().api_auth_post(auth_request)
+    return await BaseDefaultApi.subclasses[0]().api_auth_post(db, auth_request)
 
 
 @router.get(
@@ -75,14 +67,30 @@ async def api_auth_post(
     response_model_by_alias=True,
 )
 async def api_buy_item_get(
-    item: StrictStr = Path(..., description=""),
-    token_BearerAuth: TokenModel = Security(
-        get_token_BearerAuth
-    ),
+        item: StrictStr = Path(..., description="Название товара"),
+        token_BearerAuth: TokenModel = Security(
+            get_token_BearerAuth),
+        db: Session = Depends(get_db)
 ) -> None:
     if not BaseDefaultApi.subclasses:
         raise HTTPException(status_code=500, detail="Not implemented")
-    return await BaseDefaultApi.subclasses[0]().api_buy_item_get(item)
+    try:
+        return await BaseDefaultApi.subclasses[0]().api_buy_item_get(db, item, token_BearerAuth)
+    except ItemGetException:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=ErrorResponse(errors="Item not found").model_dump(),
+        )
+    except UserGetException:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail=ErrorResponse(errors="User not authorized").model_dump(),
+        )
+    except NotEnoughMoneyException:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=ErrorResponse(errors="Not enough money").model_dump(),
+        )
 
 
 @router.get(
@@ -98,13 +106,14 @@ async def api_buy_item_get(
     response_model_by_alias=True,
 )
 async def api_info_get(
-    token_BearerAuth: TokenModel = Security(
-        get_token_BearerAuth
-    ),
+        token_BearerAuth: TokenModel = Security(
+            get_token_BearerAuth
+        ),
+        db: Session = Depends(get_db)
 ) -> InfoResponse:
     if not BaseDefaultApi.subclasses:
         raise HTTPException(status_code=500, detail="Not implemented")
-    return await BaseDefaultApi.subclasses[0]().api_info_get()
+    return await BaseDefaultApi.subclasses[0]().api_info_get(db, token_BearerAuth)
 
 
 @router.post(
@@ -120,11 +129,18 @@ async def api_info_get(
     response_model_by_alias=True,
 )
 async def api_send_coin_post(
-    send_coin_request: SendCoinRequest = Body(None, description=""),
-    token_BearerAuth: TokenModel = Security(
-        get_token_BearerAuth
-    ),
+        send_coin_request: SendCoinRequest = Body(None, description=""),
+        token_BearerAuth: TokenModel = Security(
+            get_token_BearerAuth
+        ),
+        db: Session = Depends(get_db)
 ) -> None:
     if not BaseDefaultApi.subclasses:
         raise HTTPException(status_code=500, detail="Not implemented")
-    return await BaseDefaultApi.subclasses[0]().api_send_coin_post(send_coin_request)
+    try:
+        return await BaseDefaultApi.subclasses[0]().api_send_coin_post(db, send_coin_request, token_BearerAuth)
+    except NotEnoughMoneyException:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=ErrorResponse(errors="Not enough money").model_dump(),
+        )
